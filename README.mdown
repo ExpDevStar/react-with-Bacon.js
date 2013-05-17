@@ -1,0 +1,3 @@
+# react.js
+
+A simple FRP library written in pure Javascript. I'm really only writing this to get my head round a bunch of tools (e.g. `npm` & `grunt`) that are new to me and this seemed like an interesting library to work on. The API is heavily inspired by Bacon.js.

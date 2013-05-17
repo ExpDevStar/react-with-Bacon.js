@@ -1,0 +1,12 @@
+{
+  "name": "reactjs",
+  "version": "0.0.1",
+  "author": "Jason Frame",
+  "licenses": [
+    "MIT"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "grunt": "~0.4.1"
+  }
+}
