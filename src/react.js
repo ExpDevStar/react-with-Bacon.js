@@ -4,27 +4,24 @@
   var react = {};
   module.exports = react;
   
-  //
-  // Signal
-  
-  function Signal() {
-    this.subscribers = [];
-    this.async = false;
+  function addSubscriber(self, subscriber) {
+    self.subscribers.push(subscriber);
   }
   
-  Signal.prototype = {
-    onValue: function(subscriber) {
-      this.subscribers.push(subscriber);
-    },
-    
-    emit: function(arg) {
-      for (var i = 0; i < this.subscribers.length; ++i) {
-        try {
-          this.subscribers[i](arg);
-        } catch (e) {
-          setTimeout(function() { throw e; }, 0);
-        }
+  function emit(self, value) {
+    for (var i = 0, subs = self.subscribers, len = subs.length; i < len; ++i) {
+      try {
+        subs[i](value);
+      } catch (e) {
+        setTimeout(function() { throw e; }, 0);
       }
+    }
+  }
+  
+  function Base() { }
+  Base.prototype = {
+    onValue: function(subscriber) {
+      addSubscriber(this, subscriber);
     },
     
     map: function(fn) {
@@ -74,9 +71,7 @@
     delay: function(delay) {
       var proxy = new Signal;
       this.onValue(function(v) {
-        setTimeout(function() {
-          proxy.emit(v)
-        }, delay);
+        setTimeout(function() { proxy.emit(v) }, delay);
       });
       return proxy;
     },
@@ -87,7 +82,52 @@
       mixer.add(otherSignal);
       return mixer;
     }
+  };
+  
+  //
+  // Signal
+  
+  function Signal() {
+    this.subscribers = [];
   }
+  
+  Signal.prototype = new Base;
+  
+  Signal.prototype.emit = function(value) {
+    emit(this, value);
+  };
+  
+  //
+  // Properties
+  
+  function Property(initialValue) {
+    this.value = initialValue;
+    this.subscribers = [];
+  }
+  
+  Property.prototype = new Base;
+  
+  Property.prototype.valueOf = function() {
+    return this.value;
+  }
+  
+  Property.prototype.get = function() {
+    return this.value;
+  }
+  
+  Property.prototype.set = function(newValue) {
+    this.value = newValue;
+    emit(this, this.value);
+  }
+  
+  Property.prototype.onValue = function(subscriber) {
+    addSubscriber(this, subscriber);
+    subscriber(this.value);
+  }
+  
+  // TODO: derived signals should get current value
+  // This requires contemplation. Should a signal have
+  // some sort of buffering?
   
   //
   // Mixer
@@ -96,30 +136,16 @@
     this.subscribers = [];
   }
   
-  Mixer.prototype = {
-    onValue: function(subscriber) {
-      this.subscribers.push(subscriber);
-    },
-    
-    add: function(signal) {
-      var self = this;
-      signal.onValue(function(v) { self._emit(v); });
-      return this;
-    },
-    
-    // TODO: extract emit/subscriber functionality
-    _emit: function(arg) {
-      for (var i = 0; i < this.subscribers.length; ++i) {
-        try {
-          this.subscribers[i](arg);
-        } catch (e) {
-          setTimeout(function() { throw e; }, 0);
-        }
-      }
-    }
-  }
+  Mixer.prototype = new Base;
   
-  react.Signal  = Signal;
-  react.Mixer   = Mixer;
+  Mixer.prototype.add = function(signal) {
+    var self = this;
+    signal.onValue(function(v) { emit(self, v); });
+    return this;
+  };
+  
+  react.Signal    = Signal;
+  react.Property  = Property;
+  react.Mixer     = Mixer;
    
 })();
